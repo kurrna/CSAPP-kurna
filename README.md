@@ -1,2 +1,7 @@
+> since:2026-02-02 
+>
+> until:?
+
 # CSAPP-kurna
-since:2026-02-02 until:?
+
+### kurna的csapp自学计划
