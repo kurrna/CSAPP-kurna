@@ -143,7 +143,7 @@ NOTES:
  *   Rating: 1
  */
 int bitXor(int x, int y) {
-  return 2;
+  return ~(~(x & ~y) & ~(~x & y));
 }
 /* 
  * tmin - return minimum two's complement integer 
@@ -153,7 +153,7 @@ int bitXor(int x, int y) {
  */
 int tmin(void) {
 
-  return 2;
+  return 1 << 31;
 
 }
 //2
@@ -164,8 +164,9 @@ int tmin(void) {
  *   Max ops: 10
  *   Rating: 1
  */
+// x+1为Tmin，2*Tmin等于0，x=-1时不符合要求
 int isTmax(int x) {
-  return 2;
+  return !(x + 1 + x + 1) & !!(x + 1);
 }
 /* 
  * allOddBits - return 1 if all odd-numbered bits in word set to 1
@@ -176,7 +177,8 @@ int isTmax(int x) {
  *   Rating: 2
  */
 int allOddBits(int x) {
-  return 2;
+  int mask = 0xAA + (0xAA << 8) + (0xAA << 16) + (0xAA << 24);
+  return !((x & mask) ^ mask);
 }
 /* 
  * negate - return -x 
@@ -186,7 +188,7 @@ int allOddBits(int x) {
  *   Rating: 2
  */
 int negate(int x) {
-  return 2;
+  return ~x + 1;
 }
 //3
 /* 
@@ -199,7 +201,10 @@ int negate(int x) {
  *   Rating: 3
  */
 int isAsciiDigit(int x) {
-  return 2;
+  int high = !( (x >> 4) ^ 0x3 ); //高4位是否为0011
+  int low = x & 0xF; //低4位
+  int low_check = (low + (~0xA + 1)) >> 31; //低4位是否小于等于1001
+  return high & low_check;
 }
 /* 
  * conditional - same as x ? y : z 
@@ -209,7 +214,9 @@ int isAsciiDigit(int x) {
  *   Rating: 3
  */
 int conditional(int x, int y, int z) {
-  return 2;
+  int flag = !!x; //x是否为0
+  flag = ~flag + 1; //flag全为0或全为1
+  return (flag & y) | (~flag & z);
 }
 /* 
  * isLessOrEqual - if x <= y  then return 1, else return 0 
@@ -219,7 +226,12 @@ int conditional(int x, int y, int z) {
  *   Rating: 3
  */
 int isLessOrEqual(int x, int y) {
-  return 2;
+  int sign_x = (x >> 31) & 1; //x符号位
+  int sign_y = (y >> 31) & 1; //y符号位
+  int sign_diff = sign_x ^ sign_y; //x，y符号是否不同
+  int diff = y + (~x + 1); //y - x
+  int sign_diff_xy = (diff >> 31) & 1; //y - x符号位
+  return (sign_diff & sign_x) | (!sign_diff & !sign_diff_xy);
 }
 //4
 /* 
@@ -231,7 +243,8 @@ int isLessOrEqual(int x, int y) {
  *   Rating: 4 
  */
 int logicalNeg(int x) {
-  return 2;
+  // 如果x不为0，则x和-x符号位至少有一个为1
+  return ((x | (~x + 1)) >> 31) + 1;
 }
 /* howManyBits - return the minimum number of bits required to represent x in
  *             two's complement
@@ -246,7 +259,28 @@ int logicalNeg(int x) {
  *  Rating: 4
  */
 int howManyBits(int x) {
-  return 0;
+  int sign;
+  int bit16;
+  int bit8;
+  int bit4;
+  int bit2;
+  int bit1;
+  int bit0;
+  
+  sign = x >> 31;
+  x = (sign & ~x) | (~sign & x); //如果x为负数，则取反
+  bit16 = !!(x >> 16) << 4;
+  x = x >> bit16;
+  bit8 = !!(x >> 8) << 3;
+  x = x >> bit8;
+  bit4 = !!(x >> 4) << 2;
+  x = x >> bit4;
+  bit2 = !!(x >> 2) << 1;
+  x = x >> bit2;
+  bit1 = !!(x >> 1);
+  x = x >> bit1;
+  bit0 = x;
+  return bit16 + bit8 + bit4 + bit2 + bit1 + bit0 + 1; //加1是因为符号位
 }
 //float
 /* 
@@ -261,7 +295,36 @@ int howManyBits(int x) {
  *   Rating: 4
  */
 unsigned floatScale2(unsigned uf) {
-  return 2;
+  /* 
+   * IEEE 754 单精度浮点数格式：
+   * 1 位符号位 + 8 位指数 + 23 位尾数
+   * 乘以 2 相当于指数加 1（规格化数）或尾数左移 1 位（非规格化数）
+   */
+  unsigned sign = uf & 0x80000000;  // 提取符号位（最高位）
+  unsigned exp = (uf >> 23) & 0xFF;  // 提取指数（第 23-30 位）
+  unsigned frac = uf & 0x7FFFFF;     // 提取尾数（低 23 位）
+  
+  // 情况 1：NaN 或无穷大（指数全为 1）
+  if (exp == 0xFF) {
+    return uf;  // 直接返回原值
+  }
+  
+  // 情况 2：非规格化数（指数为 0）
+  if (exp == 0) {
+    frac = frac << 1;  // 尾数左移 1 位相当于乘以 2
+    return sign | frac;  // 保持符号位，更新尾数
+  }
+  
+  // 情况 3：规格化数（0 < 指数 < 255）
+  exp = exp + 1;  // 指数加 1 相当于乘以 2
+  
+  // 检查是否溢出为无穷大
+  if (exp == 0xFF) {
+    return sign | 0x7F800000;  // 返回无穷大（符号位 + 全 1 指数 + 全 0 尾数）
+  }
+  
+  // 重新组合符号位、指数和尾数
+  return sign | (exp << 23) | frac;
 }
 /* 
  * floatFloat2Int - Return bit-level equivalent of expression (int) f
@@ -276,7 +339,55 @@ unsigned floatScale2(unsigned uf) {
  *   Rating: 4
  */
 int floatFloat2Int(unsigned uf) {
-  return 2;
+  /*
+   * 将浮点数转换为整数（截断方式）
+   * 浮点数值 = (-1)^s × M × 2^E
+   * 其中 E = exp - bias，bias = 127
+   */
+  unsigned sign;
+  unsigned exp;
+  unsigned frac;
+  int E;
+  int result;
+  
+  sign = uf & 0x80000000;   // 提取符号位
+  exp = (uf >> 23) & 0xFF;  // 提取指数
+  frac = uf & 0x7FFFFF;     // 提取尾数
+  E = exp - 127;            // 计算实际指数（bias = 127）
+  
+  // 情况 1：NaN 或无穷大
+  if (exp == 0xFF) {
+    return 0x80000000u;  // 返回越界标志
+  }
+  
+  // 情况 2：非规格化数或指数为负（绝对值 < 1）
+  if (exp == 0 || E < 0) {
+    return 0;  // 截断为 0
+  }
+  
+  // 情况 3：指数过大，超出 int 范围
+  if (E >= 31) {
+    return 0x80000000u;  // 返回越界标志
+  }
+  
+  // 情况 4：正常转换
+  // 规格化数的尾数需要加上隐含的前导 1（第 24 位）
+  frac = frac | 0x800000;  // 1.frac 形式
+  
+  // 根据指数 E 进行移位
+  // 如果 E >= 23，左移；如果 E < 23，右移
+  if (E >= 23) {
+    result = frac << (E - 23);  // 小数点右移
+  } else {
+    result = frac >> (23 - E);  // 小数点左移，截断小数部分
+  }
+  
+  // 处理符号
+  if (sign) {
+    result = -result;  // 负数取相反数
+  }
+  
+  return result;
 }
 /* 
  * floatPower2 - Return bit-level equivalent of the expression 2.0^x
@@ -292,5 +403,34 @@ int floatFloat2Int(unsigned uf) {
  *   Rating: 4
  */
 unsigned floatPower2(int x) {
-    return 2;
+  /*
+   * 返回 2.0^x 的浮点数表示
+   * 2.0^x 的指数部分为 x + bias，尾数全为 0
+   * 需要处理：太小（返回 0）、太大（返回 INF）、非规格化数、规格化数
+   */
+  int bias = 127;       // 指数偏移量
+  int exp = x + bias;   // 计算实际存储的指数值
+  
+  // 情况 1：结果太小，无法用非规格化数表示
+  // 非规格化数最小值约为 2^(-126-23) = 2^(-149)
+  if (exp <= -23) {
+    return 0;  // 下溢，返回 0
+  }
+  
+  // 情况 2：结果太大，超出浮点数表示范围
+  // 最大指数为 254（255 留给 NaN/INF）
+  if (exp >= 255) {
+    return 0x7F800000;  // 上溢，返回 +INF（符号位 0 + 全 1 指数 + 全 0 尾数）
+  }
+  
+  // 情况 3：非规格化数（-23 < exp <= 0）
+  // 此时实际值为 2^(exp-23) = 2^(x+127-23) = 2^(x+104)
+  // 需要在尾数部分设置相应的位
+  if (exp <= 0) {
+    return 1 << (23 + exp);  // 在第 (23+exp) 位设置 1
+  }
+  
+  // 情况 4：规格化数（0 < exp < 255）
+  // 2.0^x 的尾数为 0，只需设置指数部分
+  return exp << 23;  // 符号位 0 + 指数 exp + 尾数 0
 }
