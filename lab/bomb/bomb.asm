@@ -377,46 +377,46 @@ Disassembly of section .text:
   400f3a:	eb db                	jmp    400f17 <phase_2+0x1b>        # 跳到 0x400f17 循环体
   400f3c:	48 83 c4 28          	add    $0x28,%rsp                  # 恢复栈空间
   400f40:	5b                   	pop    %rbx                        # 恢复被调用者保存寄存器
-  400f41:	5d                   	pop    %rbp                        # 恢复被调用者保存寄存器
-  400f42:	c3                   	retq                               # return
+  400f41:	5d                   	pop    %rbp                         # 恢复被调用者保存寄存器
+  400f42:	c3                   	retq                                # return
 
 0000000000400f43 <phase_3>:
-  400f43:	48 83 ec 18          	sub    $0x18,%rsp
-  400f47:	48 8d 4c 24 0c       	lea    0xc(%rsp),%rcx
-  400f4c:	48 8d 54 24 08       	lea    0x8(%rsp),%rdx
-  400f51:	be cf 25 40 00       	mov    $0x4025cf,%esi
-  400f56:	b8 00 00 00 00       	mov    $0x0,%eax
-  400f5b:	e8 90 fc ff ff       	callq  400bf0 <__isoc99_sscanf@plt>
-  400f60:	83 f8 01             	cmp    $0x1,%eax
-  400f63:	7f 05                	jg     400f6a <phase_3+0x27>
-  400f65:	e8 d0 04 00 00       	callq  40143a <explode_bomb>
-  400f6a:	83 7c 24 08 07       	cmpl   $0x7,0x8(%rsp)
-  400f6f:	77 3c                	ja     400fad <phase_3+0x6a>
-  400f71:	8b 44 24 08          	mov    0x8(%rsp),%eax
-  400f75:	ff 24 c5 70 24 40 00 	jmpq   *0x402470(,%rax,8)
-  400f7c:	b8 cf 00 00 00       	mov    $0xcf,%eax
-  400f81:	eb 3b                	jmp    400fbe <phase_3+0x7b>
-  400f83:	b8 c3 02 00 00       	mov    $0x2c3,%eax
-  400f88:	eb 34                	jmp    400fbe <phase_3+0x7b>
-  400f8a:	b8 00 01 00 00       	mov    $0x100,%eax
-  400f8f:	eb 2d                	jmp    400fbe <phase_3+0x7b>
-  400f91:	b8 85 01 00 00       	mov    $0x185,%eax
-  400f96:	eb 26                	jmp    400fbe <phase_3+0x7b>
-  400f98:	b8 ce 00 00 00       	mov    $0xce,%eax
-  400f9d:	eb 1f                	jmp    400fbe <phase_3+0x7b>
-  400f9f:	b8 aa 02 00 00       	mov    $0x2aa,%eax
-  400fa4:	eb 18                	jmp    400fbe <phase_3+0x7b>
-  400fa6:	b8 47 01 00 00       	mov    $0x147,%eax
-  400fab:	eb 11                	jmp    400fbe <phase_3+0x7b>
-  400fad:	e8 88 04 00 00       	callq  40143a <explode_bomb>
-  400fb2:	b8 00 00 00 00       	mov    $0x0,%eax
-  400fb7:	eb 05                	jmp    400fbe <phase_3+0x7b>
-  400fb9:	b8 37 01 00 00       	mov    $0x137,%eax
-  400fbe:	3b 44 24 0c          	cmp    0xc(%rsp),%eax
-  400fc2:	74 05                	je     400fc9 <phase_3+0x86>
-  400fc4:	e8 71 04 00 00       	callq  40143a <explode_bomb>
-  400fc9:	48 83 c4 18          	add    $0x18,%rsp
-  400fcd:	c3                   	retq   
+  400f43:	48 83 ec 18          	sub    $0x18,%rsp                   # 留出24字节的空间
+  400f47:	48 8d 4c 24 0c       	lea    0xc(%rsp),%rcx               # %rcx = &input
+  400f4c:	48 8d 54 24 08       	lea    0x8(%rsp),%rdx               # %rdx = &index
+  400f51:	be cf 25 40 00       	mov    $0x4025cf,%esi               # %esi = "%d %d" 
+  400f56:	b8 00 00 00 00       	mov    $0x0,%eax                    # 将 %eax 清零
+  400f5b:	e8 90 fc ff ff       	callq  400bf0 <__isoc99_sscanf@plt> # 调用 sscanf
+  400f60:	83 f8 01             	cmp    $0x1,%eax                    # 检查读取的整数是否大于一个
+  400f63:	7f 05                	jg     400f6a <phase_3+0x27>        # 大于1则跳转到 0x400f6a
+  400f65:	e8 d0 04 00 00       	callq  40143a <explode_bomb>        # 否则引爆
+  400f6a:	83 7c 24 08 07       	cmpl   $0x7,0x8(%rsp)               # 检查 index 是否在 1-7 范围内
+  400f6f:	77 3c                	ja     400fad <phase_3+0x6a>        # 超出范围则跳转到 0x400fad 引爆
+  400f71:	8b 44 24 08          	mov    0x8(%rsp),%eax               # %eax = index
+  400f75:	ff 24 c5 70 24 40 00 	jmpq   *0x402470(,%rax,8)           # 跳转到对应的处理代码
+  400f7c:	b8 cf 00 00 00       	mov    $0xcf,%eax                   # case 1: %eax = 0xcf
+  400f81:	eb 3b                	jmp    400fbe <phase_3+0x7b>        # 跳转到 0x400fbe 比较
+  400f83:	b8 c3 02 00 00       	mov    $0x2c3,%eax                  # case 2: %eax = 0x2c3
+  400f88:	eb 34                	jmp    400fbe <phase_3+0x7b>        # 跳转到 0x400fbe 比较
+  400f8a:	b8 00 01 00 00       	mov    $0x100,%eax                  # case 3: %eax = 0x100
+  400f8f:	eb 2d                	jmp    400fbe <phase_3+0x7b>        # 跳转到 0x400fbe 比较
+  400f91:	b8 85 01 00 00       	mov    $0x185,%eax                  # case 4: %eax = 0x185
+  400f96:	eb 26                	jmp    400fbe <phase_3+0x7b>        # 跳转到 0x400fbe 比较
+  400f98:	b8 ce 00 00 00       	mov    $0xce,%eax                   # case 5: %eax = 0xce
+  400f9d:	eb 1f                	jmp    400fbe <phase_3+0x7b>        # 跳转到 0x400fbe 比较
+  400f9f:	b8 aa 02 00 00       	mov    $0x2aa,%eax                  # case 6: %eax = 0x2aa
+  400fa4:	eb 18                	jmp    400fbe <phase_3+0x7b>        # 跳转到 0x400fbe 比较
+  400fa6:	b8 47 01 00 00       	mov    $0x147,%eax                  # case 7: %eax = 0x147
+  400fab:	eb 11                	jmp    400fbe <phase_3+0x7b>        # 跳转到 0x400fbe 比较
+  400fad:	e8 88 04 00 00       	callq  40143a <explode_bomb>        # default: 引爆
+  400fb2:	b8 00 00 00 00       	mov    $0x0,%eax                    # %eax = 0x0
+  400fb7:	eb 05                	jmp    400fbe <phase_3+0x7b>        # 跳转到 0x400fbe 比较
+  400fb9:	b8 37 01 00 00       	mov    $0x137,%eax                  # %eax = 0x137
+  400fbe:	3b 44 24 0c          	cmp    0xc(%rsp),%eax               # 比较输入值与计算值
+  400fc2:	74 05                	je     400fc9 <phase_3+0x86>        # 相等则跳装到 0x400fc9 结束
+  400fc4:	e8 71 04 00 00       	callq  40143a <explode_bomb>        # 否则引爆
+  400fc9:	48 83 c4 18          	add    $0x18,%rsp                   # 恢复栈空间
+  400fcd:	c3                   	retq                                # 返回    
 
 0000000000400fce <func4>:
   400fce:	48 83 ec 08          	sub    $0x8,%rsp
