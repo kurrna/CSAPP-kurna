@@ -447,6 +447,8 @@ Disassembly of section .text:
   401007:	48 83 c4 08          	add    $0x8,%rsp
   40100b:	c3                   	retq   
 
+# 第一个数：0，1，3，7
+# 第二个数：0
 000000000040100c <phase_4>:
   40100c:	48 83 ec 18          	sub    $0x18,%rsp
   401010:	48 8d 4c 24 0c       	lea    0xc(%rsp),%rcx               # %rcx = &arg2
@@ -472,45 +474,45 @@ Disassembly of section .text:
   401061:	c3                   	retq   
 
 0000000000401062 <phase_5>:
-  401062:	53                   	push   %rbx
-  401063:	48 83 ec 20          	sub    $0x20,%rsp
-  401067:	48 89 fb             	mov    %rdi,%rbx
-  40106a:	64 48 8b 04 25 28 00 	mov    %fs:0x28,%rax
+  401062:	53                   	push   %rbx               			# 保存被调用者保存寄存器
+  401063:	48 83 ec 20          	sub    $0x20,%rsp             		# 分配32字节栈空间
+  401067:	48 89 fb             	mov    %rdi,%rbx                    # 保存输入字符串指针到 %rbx
+  40106a:	64 48 8b 04 25 28 00 	mov    %fs:0x28,%rax                # 栈保护检查
   401071:	00 00 
-  401073:	48 89 44 24 18       	mov    %rax,0x18(%rsp)
-  401078:	31 c0                	xor    %eax,%eax
-  40107a:	e8 9c 02 00 00       	callq  40131b <string_length>
-  40107f:	83 f8 06             	cmp    $0x6,%eax
-  401082:	74 4e                	je     4010d2 <phase_5+0x70>
-  401084:	e8 b1 03 00 00       	callq  40143a <explode_bomb>
-  401089:	eb 47                	jmp    4010d2 <phase_5+0x70>
-  40108b:	0f b6 0c 03          	movzbl (%rbx,%rax,1),%ecx
-  40108f:	88 0c 24             	mov    %cl,(%rsp)
-  401092:	48 8b 14 24          	mov    (%rsp),%rdx
-  401096:	83 e2 0f             	and    $0xf,%edx
-  401099:	0f b6 92 b0 24 40 00 	movzbl 0x4024b0(%rdx),%edx
-  4010a0:	88 54 04 10          	mov    %dl,0x10(%rsp,%rax,1)
-  4010a4:	48 83 c0 01          	add    $0x1,%rax
-  4010a8:	48 83 f8 06          	cmp    $0x6,%rax
-  4010ac:	75 dd                	jne    40108b <phase_5+0x29>
-  4010ae:	c6 44 24 16 00       	movb   $0x0,0x16(%rsp)
-  4010b3:	be 5e 24 40 00       	mov    $0x40245e,%esi
-  4010b8:	48 8d 7c 24 10       	lea    0x10(%rsp),%rdi
-  4010bd:	e8 76 02 00 00       	callq  401338 <strings_not_equal>
-  4010c2:	85 c0                	test   %eax,%eax
-  4010c4:	74 13                	je     4010d9 <phase_5+0x77>
-  4010c6:	e8 6f 03 00 00       	callq  40143a <explode_bomb>
-  4010cb:	0f 1f 44 00 00       	nopl   0x0(%rax,%rax,1)
-  4010d0:	eb 07                	jmp    4010d9 <phase_5+0x77>
-  4010d2:	b8 00 00 00 00       	mov    $0x0,%eax
-  4010d7:	eb b2                	jmp    40108b <phase_5+0x29>
-  4010d9:	48 8b 44 24 18       	mov    0x18(%rsp),%rax
-  4010de:	64 48 33 04 25 28 00 	xor    %fs:0x28,%rax
+  401073:	48 89 44 24 18       	mov    %rax,0x18(%rsp)              # 保存栈保护值
+  401078:	31 c0                	xor    %eax,%eax                    # 清零 %eax，作为索引使用
+  40107a:	e8 9c 02 00 00       	callq  40131b <string_length>		# 计算输入字符串长度
+  40107f:	83 f8 06             	cmp    $0x6,%eax					# 检查长度是否为6
+  401082:	74 4e                	je     4010d2 <phase_5+0x70>		# 是则跳到0x4010d2继续
+  401084:	e8 b1 03 00 00       	callq  40143a <explode_bomb>		# 
+  401089:	eb 47                	jmp    4010d2 <phase_5+0x70>		# 继续执行
+  40108b:	0f b6 0c 03          	movzbl (%rbx,%rax,1),%ecx			# 取输入字符串的每个字符，ecx = input[i]
+  40108f:	88 0c 24             	mov    %cl,(%rsp)					# 将字符存储到栈上（%cl和%dl分别是%ecx和%edx的低8位）
+  401092:	48 8b 14 24          	mov    (%rsp),%rdx					# 取出该字符
+  401096:	83 e2 0f             	and    $0xf,%edx					# 取低4位作为索引
+  401099:	0f b6 92 b0 24 40 00 	movzbl 0x4024b0(%rdx),%edx			# 使用索引从表中取值
+  4010a0:	88 54 04 10          	mov    %dl,0x10(%rsp,%rax,1)		# 存储转换后的字符
+  4010a4:	48 83 c0 01          	add    $0x1,%rax					# 增加索引
+  4010a8:	48 83 f8 06          	cmp    $0x6,%rax					# 检查是否处理完6个字符
+  4010ac:	75 dd                	jne    40108b <phase_5+0x29>		# 未处理完则继续
+  4010ae:	c6 44 24 16 00       	movb   $0x0,0x16(%rsp)				# 在转换后的字符串末尾添加空字符
+  4010b3:	be 5e 24 40 00       	mov    $0x40245e,%esi				# %esi = 期望字符串地址 0x40245e = "flyers"
+  4010b8:	48 8d 7c 24 10       	lea    0x10(%rsp),%rdi				# %rdi = 转换后的字符串地址
+  4010bd:	e8 76 02 00 00       	callq  401338 <strings_not_equal>	# 比较字符串
+  4010c2:	85 c0                	test   %eax,%eax					# 检查返回值
+  4010c4:	74 13                	je     4010d9 <phase_5+0x77>		# 返回值为0则跳到结束
+  4010c6:	e8 6f 03 00 00       	callq  40143a <explode_bomb>		# 否则引爆
+  4010cb:	0f 1f 44 00 00       	nopl   0x0(%rax,%rax,1)				# 对齐指令
+  4010d0:	eb 07                	jmp    4010d9 <phase_5+0x77>		# 跳转到 0x4010d9 结束
+  4010d2:	b8 00 00 00 00       	mov    $0x0,%eax					# 初始化索引为 rax = 0
+  4010d7:	eb b2                	jmp    40108b <phase_5+0x29>		# 跳转到 0x40108b 处理每个字符
+  4010d9:	48 8b 44 24 18       	mov    0x18(%rsp),%rax				# 取出栈保护值
+  4010de:	64 48 33 04 25 28 00 	xor    %fs:0x28,%rax				# 检查栈保护
   4010e5:	00 00 
-  4010e7:	74 05                	je     4010ee <phase_5+0x8c>
-  4010e9:	e8 42 fa ff ff       	callq  400b30 <__stack_chk_fail@plt>
-  4010ee:	48 83 c4 20          	add    $0x20,%rsp
-  4010f2:	5b                   	pop    %rbx
+  4010e7:	74 05                	je     4010ee <phase_5+0x8c>		# 若栈未被破坏则继续
+  4010e9:	e8 42 fa ff ff       	callq  400b30 <__stack_chk_fail@plt>	# 栈保护失败处理
+  4010ee:	48 83 c4 20          	add    $0x20,%rsp					# 恢复栈空间
+  4010f2:	5b                   	pop    %rbx						# 恢复被调用者保存寄存器
   4010f3:	c3                   	retq   
 
 00000000004010f4 <phase_6>:
