@@ -1,7 +1,14 @@
-> since:2026-02-02 
+> since:2026-02-02
 >
-> until:?
+> until:--
 
-# CSAPP-kurna
+## kurna的csapp自学计划
 
-### kurna的csapp自学计划
+- [X] Data Lab 20260204
+- [X] Bomb Lab 20260214
+- [ ] Attack Lab
+- [ ] Architecture Lab
+- [ ] Cache Lab
+- [ ] Shell Lab
+- [ ] Malloc Lab
+- [ ] Proxy Lab
