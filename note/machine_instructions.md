@@ -413,3 +413,37 @@ phase_6的大概流程为：
 应该是必须按照"%d %d %s"格式输入后验证字符串是否与"DrEvil"相同，其中0x603870是第四题的输入串地址<input_strings+240>，因此在第四题后加上"DrEvil"即可进入secret_phase
 
 ### 解答
+
+调用一个递归函数func7
+
+```c
+struct treeNode {
+    int data;
+    struct treeNode *left;
+    struct treeNode *right;
+};
+
+int func7(struct treeNode *p, int v) {
+    if (p == NULL) return -1;
+    else if (v < p->data) return 2 *func7(p->left, v));
+    else if (v == p->data) return 0;
+    else return 2 * func7(p->right, v) + 1;
+}
+```
+
+0x6030f0处的内存如下
+
+```
+              36
+            /   \
+          /       \
+        /           \
+      8               50
+    /    \          /    \
+   /      \        /      \
+  6       22      45      107
+ / \     /  \    /  \    /   \
+1   7   20  35  40  47  99  1001
+```
+
+所以答案是22或者20
