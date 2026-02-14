@@ -525,73 +525,73 @@ Disassembly of section .text:
   401100:	49 89 e5             	mov    %rsp,%r13
   401103:	48 89 e6             	mov    %rsp,%rsi
   401106:	e8 51 03 00 00       	callq  40145c <read_six_numbers>
-  40110b:	49 89 e6             	mov    %rsp,%r14
-  40110e:	41 bc 00 00 00 00    	mov    $0x0,%r12d
-  401114:	4c 89 ed             	mov    %r13,%rbp
-  401117:	41 8b 45 00          	mov    0x0(%r13),%eax
-  40111b:	83 e8 01             	sub    $0x1,%eax
+  40110b:	49 89 e6             	mov    %rsp,%r14       # r14 = &input_numbers
+  40110e:	41 bc 00 00 00 00    	mov    $0x0,%r12d       # r12d = 0
+  401114:	4c 89 ed             	mov    %r13,%rbp       # rbp = &input_numbers
+  401117:	41 8b 45 00          	mov    0x0(%r13),%eax  
+  40111b:	83 e8 01             	sub    $0x1,%eax      # eax = input_numbers[0] - 1
   40111e:	83 f8 05             	cmp    $0x5,%eax
-  401121:	76 05                	jbe    401128 <phase_6+0x34>
+  401121:	76 05                	jbe    401128 <phase_6+0x34>  # 若eax <= 5跳转到0x401128继续
   401123:	e8 12 03 00 00       	callq  40143a <explode_bomb>
   401128:	41 83 c4 01          	add    $0x1,%r12d
   40112c:	41 83 fc 06          	cmp    $0x6,%r12d
-  401130:	74 21                	je     401153 <phase_6+0x5f>
-  401132:	44 89 e3             	mov    %r12d,%ebx
-  401135:	48 63 c3             	movslq %ebx,%rax
-  401138:	8b 04 84             	mov    (%rsp,%rax,4),%eax
-  40113b:	39 45 00             	cmp    %eax,0x0(%rbp)
-  40113e:	75 05                	jne    401145 <phase_6+0x51>
-  401140:	e8 f5 02 00 00       	callq  40143a <explode_bomb>
+  401130:	74 21                	je     401153 <phase_6+0x5f>  # 若r12d == 6跳转到0x401153结束，数组中每个元素与输入的第一个元素进行比较，如果不相等则引爆炸弹
+  401132:	44 89 e3             	mov    %r12d,%ebx     # ebx = r12d
+  401135:	48 63 c3             	movslq %ebx,%rax      # rax = (long) ebx
+  401138:	8b 04 84             	mov    (%rsp,%rax,4),%eax  # eax = input_numbers[r12d]
+  40113b:	39 45 00             	cmp    %eax,0x0(%rbp)   # 比较 eax 和 input_numbers[0]
+  40113e:	75 05                	jne    401145 <phase_6+0x51>    # 不相等则继续
+  401140:	e8 f5 02 00 00       	callq  40143a <explode_bomb>    # 否则引爆炸弹
   401145:	83 c3 01             	add    $0x1,%ebx
   401148:	83 fb 05             	cmp    $0x5,%ebx
   40114b:	7e e8                	jle    401135 <phase_6+0x41>
   40114d:	49 83 c5 04          	add    $0x4,%r13
   401151:	eb c1                	jmp    401114 <phase_6+0x20>
-  401153:	48 8d 74 24 18       	lea    0x18(%rsp),%rsi
-  401158:	4c 89 f0             	mov    %r14,%rax
-  40115b:	b9 07 00 00 00       	mov    $0x7,%ecx
-  401160:	89 ca                	mov    %ecx,%edx
-  401162:	2b 10                	sub    (%rax),%edx
-  401164:	89 10                	mov    %edx,(%rax)
-  401166:	48 83 c0 04          	add    $0x4,%rax
-  40116a:	48 39 f0             	cmp    %rsi,%rax
-  40116d:	75 f1                	jne    401160 <phase_6+0x6c>
-  40116f:	be 00 00 00 00       	mov    $0x0,%esi
-  401174:	eb 21                	jmp    401197 <phase_6+0xa3>
-  401176:	48 8b 52 08          	mov    0x8(%rdx),%rdx
-  40117a:	83 c0 01             	add    $0x1,%eax
-  40117d:	39 c8                	cmp    %ecx,%eax
+  401153:	48 8d 74 24 18       	lea    0x18(%rsp),%rsi    # 从0x401130跳转到这里 
+  401158:	4c 89 f0             	mov    %r14,%rax          # rax = &input_numbers
+  40115b:	b9 07 00 00 00       	mov    $0x7,%ecx          # ecx = 7
+  401160:	89 ca                	mov    %ecx,%edx          # edx = 7，从 0x40116d 跳转到这里
+  401162:	2b 10                	sub    (%rax),%edx        # edx = 7 - input_numbers[0]
+  401164:	89 10                	mov    %edx,(%rax)        # input_numbers[0] = 7 - input_numbers[0]
+  401166:	48 83 c0 04          	add    $0x4,%rax          # rax = &input_numbers + 4
+  40116a:	48 39 f0             	cmp    %rsi,%rax          # 比较 rax 和 rsi，检查是否处理完所有输入数字（所有数字都被转换为 7 - input_numbers[i]）
+  40116d:	75 f1                	jne    401160 <phase_6+0x6c>  # 未处理完则继续
+  40116f:	be 00 00 00 00       	mov    $0x0,%esi              # esi = 0
+  401174:	eb 21                	jmp    401197 <phase_6+0xa3>  # 跳转到处理下一部分
+  401176:	48 8b 52 08          	mov    0x8(%rdx),%rdx         # 从0x4011a9跳转到这里，rdx = input_numbers[i]
+  40117a:	83 c0 01             	add    $0x1,%eax          
+  40117d:	39 c8                	cmp    %ecx,%eax              # 比较 eax 和 ecx，检查当前数字是否等于前一个数字加1
   40117f:	75 f5                	jne    401176 <phase_6+0x82>
   401181:	eb 05                	jmp    401188 <phase_6+0x94>
-  401183:	ba d0 32 60 00       	mov    $0x6032d0,%edx
-  401188:	48 89 54 74 20       	mov    %rdx,0x20(%rsp,%rsi,2)
-  40118d:	48 83 c6 04          	add    $0x4,%rsi
+  401183:	ba d0 32 60 00       	mov    $0x6032d0,%edx         # 从0x40119d跳转到这里，edx = 0x6032d0
+  401188:	48 89 54 74 20       	mov    %rdx,0x20(%rsp,%rsi,2) # 把结构体地址存入栈上数组（原来放的是phase_6的输入串）
+  40118d:	48 83 c6 04          	add    $0x4,%rsi              # rsi = rsi + 4，移动到下一个 node
   401191:	48 83 fe 18          	cmp    $0x18,%rsi
-  401195:	74 14                	je     4011ab <phase_6+0xb7>
-  401197:	8b 0c 34             	mov    (%rsp,%rsi,1),%ecx
-  40119a:	83 f9 01             	cmp    $0x1,%ecx
-  40119d:	7e e4                	jle    401183 <phase_6+0x8f>
+  401195:	74 14                	je     4011ab <phase_6+0xb7>  # 如果处理完所有输入数字则跳转到0x4011ab继续，否则继续处理下一个数字
+  401197:	8b 0c 34             	mov    (%rsp,%rsi,1),%ecx     # 从0x401174跳转到这里，ecx = input_numbers[i]
+  40119a:	83 f9 01             	cmp    $0x1,%ecx              
+  40119d:	7e e4                	jle    401183 <phase_6+0x8f>  # 如果ecx数字小于等于1则跳转到0x401183继续处理下一个数字
   40119f:	b8 01 00 00 00       	mov    $0x1,%eax
   4011a4:	ba d0 32 60 00       	mov    $0x6032d0,%edx
-  4011a9:	eb cb                	jmp    401176 <phase_6+0x82>
-  4011ab:	48 8b 5c 24 20       	mov    0x20(%rsp),%rbx
-  4011b0:	48 8d 44 24 28       	lea    0x28(%rsp),%rax
-  4011b5:	48 8d 74 24 50       	lea    0x50(%rsp),%rsi
-  4011ba:	48 89 d9             	mov    %rbx,%rcx
-  4011bd:	48 8b 10             	mov    (%rax),%rdx
-  4011c0:	48 89 51 08          	mov    %rdx,0x8(%rcx)
+  4011a9:	eb cb                	jmp    401176 <phase_6+0x82>  # 跳转到0x401176处理当前数字
+  4011ab:	48 8b 5c 24 20       	mov    0x20(%rsp),%rbx        # rbx = nodes[7 - input_numbers[0]]
+  4011b0:	48 8d 44 24 28       	lea    0x28(%rsp),%rax        # rax = &nodes[7 - input_numbers[1]]
+  4011b5:	48 8d 74 24 50       	lea    0x50(%rsp),%rsi        
+  4011ba:	48 89 d9             	mov    %rbx,%rcx              
+  4011bd:	48 8b 10             	mov    (%rax),%rdx          # 循环
+  4011c0:	48 89 51 08          	mov    %rdx,0x8(%rcx)        # node->next = ($rax)
   4011c4:	48 83 c0 08          	add    $0x8,%rax
-  4011c8:	48 39 f0             	cmp    %rsi,%rax
+  4011c8:	48 39 f0             	cmp    %rsi,%rax              # 比较 rax 和 rsi，检查是否处理完所有节点
   4011cb:	74 05                	je     4011d2 <phase_6+0xde>
   4011cd:	48 89 d1             	mov    %rdx,%rcx
-  4011d0:	eb eb                	jmp    4011bd <phase_6+0xc9>
+  4011d0:	eb eb                	jmp    4011bd <phase_6+0xc9>  # 循环边界
   4011d2:	48 c7 42 08 00 00 00 	movq   $0x0,0x8(%rdx)
   4011d9:	00 
   4011da:	bd 05 00 00 00       	mov    $0x5,%ebp
-  4011df:	48 8b 43 08          	mov    0x8(%rbx),%rax
-  4011e3:	8b 00                	mov    (%rax),%eax
-  4011e5:	39 03                	cmp    %eax,(%rbx)
-  4011e7:	7d 05                	jge    4011ee <phase_6+0xfa>
+  4011df:	48 8b 43 08          	mov    0x8(%rbx),%rax         # rax = node->next
+  4011e3:	8b 00                	mov    (%rax),%eax            # eax = node->next->value
+  4011e5:	39 03                	cmp    %eax,(%rbx)            # 比较 node->next->value 和 node->value
+  4011e7:	7d 05                	jge    4011ee <phase_6+0xfa>  # 要求递减
   4011e9:	e8 4c 02 00 00       	callq  40143a <explode_bomb>
   4011ee:	48 8b 5b 08          	mov    0x8(%rbx),%rbx
   4011f2:	83 ed 01             	sub    $0x1,%ebp
