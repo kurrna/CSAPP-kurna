@@ -903,12 +903,12 @@ Disassembly of section .text:
   4015d1:	48 89 44 24 68       	mov    %rax,0x68(%rsp)
   4015d6:	31 c0                	xor    %eax,%eax
   4015d8:	83 3d 81 21 20 00 06 	cmpl   $0x6,0x202181(%rip)        # 603760 <num_input_strings>
-  4015df:	75 5e                	jne    40163f <phase_defused+0x7b>
+  4015df:	75 5e                	jne    40163f <phase_defused+0x7b>    # 在完成前六个phase后，再进行secret_phase的输入检查
   4015e1:	4c 8d 44 24 10       	lea    0x10(%rsp),%r8
   4015e6:	48 8d 4c 24 0c       	lea    0xc(%rsp),%rcx
   4015eb:	48 8d 54 24 08       	lea    0x8(%rsp),%rdx
   4015f0:	be 19 26 40 00       	mov    $0x402619,%esi
-  4015f5:	bf 70 38 60 00       	mov    $0x603870,%edi
+  4015f5:	bf 70 38 60 00       	mov    $0x603870,%edi       # 0x603870<input_strings+240>是第四题的输入字符串地址，因此在第四题后加上key串即可进入secret_phase
   4015fa:	e8 f1 f5 ff ff       	callq  400bf0 <__isoc99_sscanf@plt>
   4015ff:	83 f8 03             	cmp    $0x3,%eax
   401602:	75 31                	jne    401635 <phase_defused+0x71>

@@ -36,7 +36,7 @@
 - `D(Rb, Ri)` -> `Mem[Reg[Rb]+Reg[Ri]+D]`
 - `(Rb, Ri, S)` -> `Mem[Reg[Rb]+S*Reg[Ri]]`
 
-#### **常用指令**
+#### **常用指令**(AT&T格式)
 
 - `leaq Src, Dest`：将Src地址表达式计算的结果存入Dest中
   - `leaq (%rdi, %rdi, 2), %rax`对%rdi寄存器中存的数据进行计算，然后赋值给%rax
@@ -404,3 +404,12 @@ phase_6的大概流程为：
 
 >  在做phase_5的时候不小心使用x/s 0x402450得到了"secret stage!"，把内存dump下来才发现是0x402438的"Wow! You've defused the secret stage!"，我还以为我自己找到了secret stage（
 
+### 入口
+
+在phase_defused函数中调用了secret_phase，在前面的汇编中出现了0x402619, 0x603870, 0x402622, 0x4024f8, 0x402520等地址，逐个查看
+
+![](.\img\屏幕截图 2026-02-14 202157.png)
+
+应该是必须按照"%d %d %s"格式输入后验证字符串是否与"DrEvil"相同，其中0x603870是第四题的输入串地址<input_strings+240>，因此在第四题后加上"DrEvil"即可进入secret_phase
+
+### 解答
